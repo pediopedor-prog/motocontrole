@@ -71,10 +71,10 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
   },
-  owner: "wesleymtheuss02",
+  owner: "weesleymtesu2",
   extra: {
     eas: {
-      projectId: "34c4c311-ff42-44dd-a787-e8f72fb569f7",
+      projectId: "dcb46acf-ca5a-4497-a7df-bb1fe0724bf5",
     },
   },
 };
