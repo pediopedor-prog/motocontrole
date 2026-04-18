@@ -215,32 +215,7 @@ function GeralTab() {
           </View>
         ))}
 
-        {/* Cards de resumo global — sempre exibidos no topo */}
-        <View className="flex-row gap-3 mb-3">
-          <StatCard title="Total Apps" value={formatCurrency(totalEarningsAll)}
-            icon={<IconSymbol name="chart.line.uptrend.xyaxis" size={16} color={colors.success} />} />
-          <StatCard title="Valor Líquido" value={formatCurrency(liquidoAll)}
-            icon={<IconSymbol name="dollarsign.circle.fill" size={16} color={colors.success} />} />
-        </View>
-        <View className="flex-row gap-3 mb-3">
-          <StatCard title="Horas Trabalhadas" value={`${totalHoursAll.toFixed(1)}h`}
-            icon={<IconSymbol name="clock.fill" size={16} color={colors.primary} />} />
-          <StatCard title="Custo Total KM" value={formatCurrency(totalKmCostAll)}
-            icon={<IconSymbol name="speedometer" size={16} color={colors.warning} />} />
-        </View>
-        <View className="flex-row gap-3 mb-3">
-          <StatCard title="Gasto Manutenção" value={formatCurrency(totalMaintenanceAll)}
-            icon={<IconSymbol name="wrench.fill" size={16} color={colors.error} />} />
-          <StatCard title="Total KM" value={`${formatOdometer(totalKmAll)} km`}
-            icon={<IconSymbol name="location.fill" size={16} color={colors.muted} />} />
-        </View>
-        <View className="flex-row gap-3 mb-4">
-          <StatCard title="Dias Trabalhados" value={diasTrabalhados.toString()}
-            icon={<IconSymbol name="calendar" size={16} color={colors.primary} />} />
-          <View className="flex-1" />
-        </View>
-
-        {/* Filtro de período */}
+        {/* Filtro de período — logo após odômetro, acima dos cards */}
         <View className="flex-row flex-wrap gap-2 mb-3">
           {(["daily", "weekly", "monthly", "custom"] as CostPeriod[]).map((p) => (
             <TouchableOpacity key={p} onPress={() => { setPeriod(p); setRefDate(new Date()); }}
@@ -276,6 +251,31 @@ function GeralTab() {
             </View>
           </View>
         )}
+
+        {/* Cards filtrados pelo período selecionado */}
+        <View className="flex-row gap-3 mb-3">
+          <StatCard title="Total Apps" value={formatCurrency(data.totalEarnings)}
+            icon={<IconSymbol name="chart.line.uptrend.xyaxis" size={16} color={colors.success} />} />
+          <StatCard title="Valor Líquido" value={formatCurrency(Math.max(0, data.netProfit))}
+            icon={<IconSymbol name="dollarsign.circle.fill" size={16} color={colors.success} />} />
+        </View>
+        <View className="flex-row gap-3 mb-3">
+          <StatCard title="Horas Trabalhadas" value={`${totalHours.toFixed(1)}h`}
+            icon={<IconSymbol name="clock.fill" size={16} color={colors.primary} />} />
+          <StatCard title="Custo Total KM" value={formatCurrency(data.kmCost)}
+            icon={<IconSymbol name="speedometer" size={16} color={colors.warning} />} />
+        </View>
+        <View className="flex-row gap-3 mb-3">
+          <StatCard title="Gasto Manutenção" value={formatCurrency(data.maintenanceCost)}
+            icon={<IconSymbol name="wrench.fill" size={16} color={colors.error} />} />
+          <StatCard title="Total KM" value={`${formatOdometer(data.totalKm)} km`}
+            icon={<IconSymbol name="location.fill" size={16} color={colors.muted} />} />
+        </View>
+        <View className="flex-row gap-3 mb-4">
+          <StatCard title="Dias Trabalhados" value={new Set(earnings.filter((e) => isInRange(e.date, periodStart, periodEnd)).map((e) => e.date)).size.toString()}
+            icon={<IconSymbol name="calendar" size={16} color={colors.primary} />} />
+          <View className="flex-1" />
+        </View>
 
         {/* Gráfico de distribuição de custos — agora por último */}
         <Card title="Distribuição de Custos" className="mb-4">
@@ -1618,10 +1618,10 @@ function PrevisaoTab() {
         </Card>
 
         <Card title="Projeção de KM" className="mb-4">
-          {[["KM/Dia", `${formatOdometer(result.kmPerDay)} km`], ["KM/Semana", `${formatOdometer(result.kmPerWeek)} km`], ["KM/Mês", `${formatOdometer(result.kmPerMonth)} km`], ["KM/Ano", `${formatOdometer(result.kmPerYear)} km`]].map(([label, val]) => (
+          {[["KM/Dia", Math.round(result.kmPerDay)], ["KM/Semana", Math.round(result.kmPerWeek)], ["KM/Mês", Math.round(result.kmPerMonth)], ["KM/Ano", Math.round(result.kmPerYear)]].map(([label, val]) => (
             <View key={label} className="flex-row justify-between items-center py-2">
               <Text className="text-sm text-muted">{label}</Text>
-              <Text className="text-sm font-bold text-foreground">{val}</Text>
+              <Text className="text-sm font-bold text-foreground">{(val as number).toLocaleString("pt-BR")} km</Text>
             </View>
           ))}
         </Card>
@@ -1789,10 +1789,14 @@ function ConfigTab() {
         URL.revokeObjectURL(url);
         alert("Dados exportados!");
       } else {
-        await Share.share({ message: data, title: "MotoControle Backup" });
+        const FileSystem = require("expo-file-system");
+        const fileName = `MotoControle_backup_${new Date().toISOString().split("T")[0]}.json`;
+        const filePath = FileSystem.documentDirectory + fileName;
+        await FileSystem.writeAsStringAsync(filePath, data, { encoding: FileSystem.EncodingType.UTF8 });
+        Alert.alert("Backup salvo!", `Arquivo salvo em:\n${fileName}\n\nPasta: Documentos do app`, [{ text: "OK" }]);
       }
     } catch (err) {
-      if (Platform.OS === "web") alert("Erro ao exportar"); else Alert.alert("Erro", "Falha ao exportar");
+      if (Platform.OS === "web") alert("Erro ao exportar"); else Alert.alert("Erro", "Falha ao exportar dados.");
     }
   };
 
@@ -1824,7 +1828,10 @@ function ConfigTab() {
         if (result.canceled || !result.assets || result.assets.length === 0) return;
         const fileUri = result.assets[0].uri;
         const FileSystem = require("expo-file-system");
-        let content = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
+        // Copia para o cache primeiro para garantir acesso de leitura
+        const cacheUri = FileSystem.cacheDirectory + "motocontrole_import_tmp.json";
+        await FileSystem.copyAsync({ from: fileUri, to: cacheUri });
+        let content = await FileSystem.readAsStringAsync(cacheUri, { encoding: FileSystem.EncodingType.UTF8 });
         // Remove BOM se presente
         if (content.charCodeAt(0) === 0xFEFF) content = content.slice(1);
         content = content.trim();
@@ -1835,6 +1842,8 @@ function ConfigTab() {
           return;
         }
         const success = await importData(content);
+        // Limpa cache temporário
+        await FileSystem.deleteAsync(cacheUri, { idempotent: true });
         if (success) Alert.alert("Sucesso", "Dados importados com sucesso!");
         else Alert.alert("Erro", "Arquivo inválido ou formato não reconhecido.");
       } catch (err) {
