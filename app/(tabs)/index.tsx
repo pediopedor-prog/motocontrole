@@ -110,6 +110,7 @@ export default function DashboardScreen() {
 
   const currentMotoKm = config.currentMotoKm || 0;
   const kmAlerts = forecasts.filter((f) => {
+    if (f.notificationEnabled === false) return false;
     if (!f.kmDuration || f.kmDuration <= 0) return false;
     // Busca última manutenção deste item
     const lastMaint = [...maintenance]
