@@ -1,0 +1,23 @@
+# Project TODO
+
+- [x] Configurar tema/cores do app (verde financeiro)
+- [x] Implementar banco de dados local com AsyncStorage
+- [x] Configurar navegação bottom tabs (Dashboard, Moto, Financeiro, Investimento, Renda Extra)
+- [x] Implementar Dashboard com blocos personalizáveis
+- [x] Implementar gráficos no Dashboard (semanal, ganhos vs contas)
+- [x] Implementar alerta de meta no Dashboard
+- [x] Implementar Moto - Lançamento (ganhos por app, KM)
+- [x] Implementar Moto - Média (estatísticas e filtros)
+- [x] Implementar Moto - Manutenção (registro de trocas)
+- [x] Implementar Moto - Custo Real (comparativo)
+- [x] Implementar Moto - Previsão (gastos anuais)
+- [x] Implementar Moto - Configurações (custo KM, apps, itens)
+- [x] Implementar Financeiro - Visão Geral (cards + gráfico)
+- [x] Implementar Financeiro - Lançamento (ganhos/gastos/parcelas)
+- [x] Implementar Financeiro - Relatório (pesquisa avançada)
+- [x] Implementar Financeiro - Gráfico (pizza ganhos/gastos)
+- [x] Implementar Investimento (aportes, rendimentos, gráfico)
+- [x] Implementar Renda Extra (registro, gráfico)
+- [x] Testes unitários (24 testes passando)
+- [x] Gerar logo do app
+- [x] Salvar checkpoint final
