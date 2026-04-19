@@ -116,20 +116,28 @@ function GeralTab() {
     else if (period === "monthly") setRefDate(shiftMonth(refDate, 1));
   };
 
+  // Função para obter string de data local (sem conversão UTC)
+  const getLocalDateStr = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
   const navLabel = period === "daily"
-    ? formatDate(refDate.toISOString())
+    ? formatDate(getLocalDateStr(refDate))
     : period === "weekly" ? formatWeekRange(refDate)
     : period === "monthly" ? formatMonthRange(refDate)
     : `${customStartStr} - ${customEndStr}`;
 
-  // Horas trabalhadas no período
+  // Horas trabalhadas no período — usa data local para evitar bug UTC+dia
   const periodStart = period === "daily"
-    ? new Date(refDate.toISOString().split("T")[0] + "T00:00:00")
+    ? new Date(getLocalDateStr(refDate) + "T00:00:00")
     : period === "weekly" ? getStartOfWeek(refDate)
     : period === "monthly" ? getStartOfMonth(refDate)
     : customStart || new Date();
   const periodEnd = period === "daily"
-    ? new Date(refDate.toISOString().split("T")[0] + "T23:59:59")
+    ? new Date(getLocalDateStr(refDate) + "T23:59:59")
     : period === "weekly" ? getEndOfWeek(refDate)
     : period === "monthly" ? getEndOfMonth(refDate)
     : customEnd || new Date();
@@ -138,6 +146,7 @@ function GeralTab() {
   const totalMinutes = periodShifts.reduce((s, sh) => s + sh.durationMinutes, 0);
   const totalHours = totalMinutes / 60;
   const reaisPerHora = totalHours > 0 ? data.totalEarnings / totalHours : 0;
+  const reaisPorKm = data.totalKm > 0 ? data.totalEarnings / data.totalKm : 0;
 
   const chartLabels = ["Ganhos", "Custo KM", "Manutenção", "Lucro"];
   const chartData = [
@@ -270,6 +279,12 @@ function GeralTab() {
             icon={<IconSymbol name="wrench.fill" size={16} color={colors.error} />} />
           <StatCard title="Total KM" value={`${formatOdometer(data.totalKm)} km`}
             icon={<IconSymbol name="location.fill" size={16} color={colors.muted} />} />
+        </View>
+        <View className="flex-row gap-3 mb-3">
+          <StatCard title="R$/Hora" value={reaisPerHora > 0 ? formatCurrency(reaisPerHora) : "-"}
+            icon={<IconSymbol name="clock.fill" size={16} color={colors.success} />} />
+          <StatCard title="R$/KM" value={reaisPorKm > 0 ? formatCurrency(reaisPorKm) : "-"}
+            icon={<IconSymbol name="location.fill" size={16} color={colors.primary} />} />
         </View>
         <View className="flex-row gap-3 mb-4">
           <StatCard title="Dias Trabalhados" value={new Set(earnings.filter((e) => isInRange(e.date, periodStart, periodEnd)).map((e) => e.date)).size.toString()}
@@ -500,19 +515,21 @@ function GanhosTab() {
         ))}
         {sorted.length === 0 && <Text className="text-sm text-muted text-center py-4">Nenhum ganho no período</Text>}
 
-        <BaixaManualSection earnings={filtered} updateEarning={updateEarning} addEarning={addEarning} config={config} colors={colors} getColor={getColor} />
+        <BaixaManualSection earnings={filtered} allEarnings={earnings} updateEarning={updateEarning} addEarning={addEarning} config={config} colors={colors} getColor={getColor} />
       </View>
     </ScrollView>
   );
 }
 
 // ==================== BAIXA MANUAL ====================
-function BaixaManualSection({ earnings: filtered, updateEarning, addEarning, config, colors, getColor }: any) {
+function BaixaManualSection({ earnings: filtered, allEarnings, updateEarning, addEarning, config, colors, getColor }: any) {
   const [selectedApp, setSelectedApp] = useState(config.apps[0] || "");
   const [receiveValue, setReceiveValue] = useState("");
 
+  // Usa allEarnings para mostrar todos os pendentes acumulados (não só da semana)
+  const allPending = allEarnings || filtered;
   const pendingByApp: Record<string, { total: number; ids: string[] }> = {};
-  filtered.forEach((e: any) => {
+  allPending.forEach((e: any) => {
     if (e.status === "received") return;
     const pendingValue = e.value - (e.receivedValue || 0);
     if (pendingValue <= 0) return;
@@ -536,9 +553,10 @@ function BaixaManualSection({ earnings: filtered, updateEarning, addEarning, con
       return;
     }
     let remaining = parsedValue;
-    const pendingEarnings = filtered
+    // Usa allEarnings para dar baixa em todos os pendentes, do mais antigo ao mais novo
+    const pendingEarnings = allPending
       .filter((e: any) => e.appName === selectedApp && e.status !== "received")
-      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(a.date).getTime());
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const todayStr2 = new Date().toISOString().split("T")[0];
     for (const earning of pendingEarnings) {
       if (remaining <= 0) break;
