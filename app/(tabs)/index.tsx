@@ -112,14 +112,13 @@ export default function DashboardScreen() {
   const kmAlerts = forecasts.filter((f) => {
     if (f.notificationEnabled === false) return false;
     if (!f.kmDuration || f.kmDuration <= 0) return false;
-    // Busca última manutenção deste item
     const lastMaint = [...maintenance]
       .filter((m) => m.item === f.item)
-      .sort((a, b) => b.km - a.km)[0];
-    const lastKm = lastMaint ? lastMaint.km : 0;
+      .sort((a, b) => (Number(b.km) || 0) - (Number(a.km) || 0))[0];
+    const lastKm = lastMaint ? (Number(lastMaint.km) || 0) : 0;
     const nextKm = lastKm + f.kmDuration;
     const kmToNext = nextKm - currentMotoKm;
-    return kmToNext <= f.kmDuration * 0.15 || kmToNext <= 0; // alerta nos últimos 15% ou vencido
+    return kmToNext <= f.kmDuration * 0.15 || kmToNext <= 0;
   });
 
   // Contas da semana navegável
@@ -263,8 +262,8 @@ export default function DashboardScreen() {
             {kmAlerts.map((f, i) => {
               const lastMaint = [...maintenance]
                 .filter((m) => m.item === f.item)
-                .sort((a, b) => b.km - a.km)[0];
-              const lastKm = lastMaint ? lastMaint.km : 0;
+                .sort((a, b) => (Number(b.km) || 0) - (Number(a.km) || 0))[0];
+              const lastKm = lastMaint ? (Number(lastMaint.km) || 0) : 0;
               const nextKm = lastKm + f.kmDuration;
               const kmToNext = nextKm - currentMotoKm;
               return (
